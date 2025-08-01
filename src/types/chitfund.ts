@@ -1,3 +1,8 @@
+export interface ChitMember {
+  name: string;
+  mobile: string;
+}
+
 export interface ChitFund {
   id: string;
   name: string;
@@ -7,8 +12,10 @@ export interface ChitFund {
   startYear: number;
   endMonth: number;
   endYear: number;
-  members: string[];
+  members: ChitMember[];
   chitHistory: ChitRecord[];
+  monthlyRecords?: MonthlyRecord[];
+  interestPercentage: number;
   createdAt: string;
 }
 
@@ -17,4 +24,21 @@ export interface ChitRecord {
   takenBy: string;
   amount: number;
   date: string;
+}
+
+export interface MonthlyPayment {
+  memberName: string;
+  amount: number;
+  paid: boolean;
+  paymentMethod?: 'cash' | 'upi' | 'bank_transfer' | 'cheque';
+  remarks?: string;
+  paidDate?: string;
+}
+
+export interface MonthlyRecord {
+  monthIndex: number;
+  chitTakenBy?: string;
+  chitAmount: number;
+  payments: MonthlyPayment[];
+  createdAt: string;
 }

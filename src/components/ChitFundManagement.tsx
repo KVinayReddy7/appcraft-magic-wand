@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, IndianRupee, Calendar, Users } from "lucide-react";
+import { ArrowLeft, IndianRupee, Calendar, Users, CalendarDays, Percent } from "lucide-react";
 import { ChitFund, ChitRecord } from "@/types/chitfund";
 import { useToast } from "@/hooks/use-toast";
+import { MonthlyView } from './MonthlyView';
 
 interface ChitFundManagementProps {
   chitFund: ChitFund;
@@ -16,7 +17,18 @@ interface ChitFundManagementProps {
 
 export const ChitFundManagement = ({ chitFund, onUpdateChitFund, onBack }: ChitFundManagementProps) => {
   const [selectedMember, setSelectedMember] = useState<string>('');
+  const [showMonthlyView, setShowMonthlyView] = useState(false);
   const { toast } = useToast();
+
+  if (showMonthlyView) {
+    return (
+      <MonthlyView
+        chitFund={chitFund}
+        onUpdateChitFund={onUpdateChitFund}
+        onBack={() => setShowMonthlyView(false)}
+      />
+    );
+  }
 
   const getMonthName = (monthIndex: number) => {
     const startDate = new Date(chitFund.startYear, chitFund.startMonth - 1);
@@ -36,6 +48,12 @@ export const ChitFundManagement = ({ chitFund, onUpdateChitFund, onBack }: ChitF
     return months;
   };
 
+  const calculateChitAmount = (monthIndex: number) => {
+    const totalAmount = chitFund.monthlyAmount * chitFund.members.length;
+    const interestMultiplier = 1 + (chitFund.interestPercentage / 100) * monthIndex;
+    return Math.round(totalAmount * interestMultiplier);
+  };
+
   const markChitTaken = (monthIndex: number) => {
     if (!selectedMember) {
       toast({
@@ -49,7 +67,7 @@ export const ChitFundManagement = ({ chitFund, onUpdateChitFund, onBack }: ChitF
     const newRecord: ChitRecord = {
       monthIndex,
       takenBy: selectedMember,
-      amount: chitFund.monthlyAmount * chitFund.members.length,
+      amount: calculateChitAmount(monthIndex),
       date: new Date().toISOString()
     };
 
@@ -80,7 +98,7 @@ export const ChitFundManagement = ({ chitFund, onUpdateChitFund, onBack }: ChitF
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -98,8 +116,20 @@ export const ChitFundManagement = ({ chitFund, onUpdateChitFund, onBack }: ChitF
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm text-muted-foreground">Total Chit Amount</p>
+                <p className="text-sm text-muted-foreground">Base Chit Amount</p>
                 <p className="text-lg font-semibold">₹{totalAmount.toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Percent className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm text-muted-foreground">Interest Rate</p>
+                <p className="text-lg font-semibold">{chitFund.interestPercentage}%</p>
               </div>
             </div>
           </CardContent>
@@ -118,17 +148,26 @@ export const ChitFundManagement = ({ chitFund, onUpdateChitFund, onBack }: ChitF
         </Card>
       </div>
 
+      {/* Action Buttons */}
+      <div className="flex gap-4">
+        <Button onClick={() => setShowMonthlyView(true)} className="gap-2">
+          <CalendarDays className="h-4 w-4" />
+          Monthly View & Payments
+        </Button>
+      </div>
+
       {/* Members List */}
       <Card>
         <CardHeader>
           <CardTitle>Members ({chitFund.members.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {chitFund.members.map((member, index) => (
-              <Badge key={index} variant="secondary">
-                {member}
-              </Badge>
+              <div key={index} className="flex flex-col p-2 border rounded-lg">
+                <div className="font-medium">{member.name}</div>
+                <div className="text-sm text-muted-foreground">{member.mobile}</div>
+              </div>
             ))}
           </div>
         </CardContent>
@@ -150,8 +189,8 @@ export const ChitFundManagement = ({ chitFund, onUpdateChitFund, onBack }: ChitF
                   </SelectTrigger>
                   <SelectContent>
                     {chitFund.members.map((member) => (
-                      <SelectItem key={member} value={member}>
-                        {member}
+                      <SelectItem key={member.name} value={member.name}>
+                        {member.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
-import { ChitFund } from "@/types/chitfund";
+import { Plus, Trash2 } from "lucide-react";
+import { ChitFund, ChitMember } from "@/types/chitfund";
 import { useToast } from "@/hooks/use-toast";
 
 interface CreateChitFundDialogProps {
@@ -15,14 +15,13 @@ interface CreateChitFundDialogProps {
 
 export const CreateChitFundDialog = ({ onCreateChitFund }: CreateChitFundDialogProps) => {
   const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    monthlyAmount: '',
-    totalMonths: '',
-    startMonth: '',
-    startYear: new Date().getFullYear().toString(),
-    members: ''
-  });
+  const [name, setName] = useState('');
+  const [members, setMembers] = useState<ChitMember[]>([{name: '', mobile: ''}]);
+  const [monthlyAmount, setMonthlyAmount] = useState('');
+  const [totalMonths, setTotalMonths] = useState('');
+  const [startMonth, setStartMonth] = useState('');
+  const [startYear, setStartYear] = useState('');
+  const [interestPercentage, setInterestPercentage] = useState('');
   const { toast } = useToast();
 
   const months = [
@@ -43,35 +42,39 @@ export const CreateChitFundDialog = ({ onCreateChitFund }: CreateChitFundDialogP
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear + i);
 
-  const calculateEndDate = (startMonth: number, startYear: number, totalMonths: number) => {
-    const startDate = new Date(startYear, startMonth - 1);
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + totalMonths - 1);
-    return {
-      endMonth: endDate.getMonth() + 1,
-      endYear: endDate.getFullYear()
-    };
+  const addMember = () => {
+    setMembers([...members, {name: '', mobile: ''}]);
+  };
+
+  const updateMember = (index: number, field: 'name' | 'mobile', value: string) => {
+    const newMembers = [...members];
+    newMembers[index] = { ...newMembers[index], [field]: value };
+    setMembers(newMembers);
+  };
+
+  const removeMember = (index: number) => {
+    if (members.length > 1) {
+      setMembers(members.filter((_, i) => i !== index));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { name, monthlyAmount, totalMonths, startMonth, startYear, members } = formData;
-    
-    if (!name || !monthlyAmount || !totalMonths || !startMonth || !members.trim()) {
+    if (!name || !monthlyAmount || !totalMonths || !startMonth || !startYear || !interestPercentage) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please fill in all required fields",
         variant: "destructive"
       });
       return;
     }
 
-    const membersList = members.split(',').map(m => m.trim()).filter(m => m);
-    if (membersList.length === 0) {
+    const filteredMembers = members.filter(member => member.name.trim() !== '' && member.mobile.trim() !== '');
+    if (filteredMembers.length === 0) {
       toast({
         title: "Error",
-        description: "Please add at least one member",
+        description: "Please add at least one member with name and mobile",
         variant: "destructive"
       });
       return;
@@ -80,8 +83,9 @@ export const CreateChitFundDialog = ({ onCreateChitFund }: CreateChitFundDialogP
     const startMonthNum = parseInt(startMonth);
     const startYearNum = parseInt(startYear);
     const totalMonthsNum = parseInt(totalMonths);
-    const { endMonth, endYear } = calculateEndDate(startMonthNum, startYearNum, totalMonthsNum);
-
+    
+    const endDate = new Date(startYearNum, startMonthNum - 1 + totalMonthsNum);
+    
     const newChitFund: ChitFund = {
       id: Date.now().toString(),
       name,
@@ -89,30 +93,30 @@ export const CreateChitFundDialog = ({ onCreateChitFund }: CreateChitFundDialogP
       totalMonths: totalMonthsNum,
       startMonth: startMonthNum,
       startYear: startYearNum,
-      endMonth,
-      endYear,
-      members: membersList,
+      endMonth: endDate.getMonth() + 1,
+      endYear: endDate.getFullYear(),
+      members: filteredMembers,
       chitHistory: [],
+      monthlyRecords: [],
+      interestPercentage: parseFloat(interestPercentage),
       createdAt: new Date().toISOString()
     };
 
     onCreateChitFund(newChitFund);
     
     // Reset form
-    setFormData({
-      name: '',
-      monthlyAmount: '',
-      totalMonths: '',
-      startMonth: '',
-      startYear: new Date().getFullYear().toString(),
-      members: ''
-    });
-    
+    setName('');
+    setMembers([{name: '', mobile: ''}]);
+    setMonthlyAmount('');
+    setTotalMonths('');
+    setStartMonth('');
+    setStartYear('');
+    setInterestPercentage('');
     setOpen(false);
     
     toast({
       title: "Success",
-      description: "Chit fund created successfully!"
+      description: "Chit fund created successfully"
     });
   };
 
@@ -124,7 +128,7 @@ export const CreateChitFundDialog = ({ onCreateChitFund }: CreateChitFundDialogP
           Create New Chit Fund
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Chit Fund</DialogTitle>
         </DialogHeader>
@@ -133,38 +137,98 @@ export const CreateChitFundDialog = ({ onCreateChitFund }: CreateChitFundDialogP
             <Label htmlFor="name">Chit Fund Name</Label>
             <Input
               id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="Family Chit Fund"
+              required
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="monthlyAmount">Monthly Amount (₹)</Label>
-            <Input
-              id="monthlyAmount"
-              type="number"
-              value={formData.monthlyAmount}
-              onChange={(e) => setFormData({ ...formData, monthlyAmount: e.target.value })}
-              placeholder="10000"
-            />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="members">Members</Label>
+              {members.map((member, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    value={member.name}
+                    onChange={(e) => updateMember(index, 'name', e.target.value)}
+                    placeholder={`Member ${index + 1} name`}
+                    className="flex-1"
+                  />
+                  <Input
+                    value={member.mobile}
+                    onChange={(e) => updateMember(index, 'mobile', e.target.value)}
+                    placeholder="Mobile number"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeMember(index)}
+                    disabled={members.length === 1}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addMember}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Member
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="monthlyAmount">Monthly Amount (₹)</Label>
+                <Input
+                  id="monthlyAmount"
+                  type="number"
+                  value={monthlyAmount}
+                  onChange={(e) => setMonthlyAmount(e.target.value)}
+                  placeholder="20000"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="interestPercentage">Interest Percentage (%)</Label>
+                <Input
+                  id="interestPercentage"
+                  type="number"
+                  step="0.1"
+                  value={interestPercentage}
+                  onChange={(e) => setInterestPercentage(e.target.value)}
+                  placeholder="0.8"
+                  required
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="totalMonths">Total Months</Label>
-            <Input
-              id="totalMonths"
-              type="number"
-              value={formData.totalMonths}
-              onChange={(e) => setFormData({ ...formData, totalMonths: e.target.value })}
-              placeholder="12"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="totalMonths">Total Months</Label>
+              <Input
+                id="totalMonths"
+                type="number"
+                value={totalMonths}
+                onChange={(e) => setTotalMonths(e.target.value)}
+                placeholder="25"
+                required
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Start Month</Label>
-              <Select value={formData.startMonth} onValueChange={(value) => setFormData({ ...formData, startMonth: value })}>
+              <Select value={startMonth} onValueChange={setStartMonth}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select month" />
                 </SelectTrigger>
@@ -180,7 +244,7 @@ export const CreateChitFundDialog = ({ onCreateChitFund }: CreateChitFundDialogP
 
             <div className="space-y-2">
               <Label>Start Year</Label>
-              <Select value={formData.startYear} onValueChange={(value) => setFormData({ ...formData, startYear: value })}>
+              <Select value={startYear} onValueChange={setStartYear}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select year" />
                 </SelectTrigger>
@@ -193,17 +257,6 @@ export const CreateChitFundDialog = ({ onCreateChitFund }: CreateChitFundDialogP
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="members">Members (comma separated)</Label>
-            <Textarea
-              id="members"
-              value={formData.members}
-              onChange={(e) => setFormData({ ...formData, members: e.target.value })}
-              placeholder="John, Mary, David, Sarah"
-              rows={3}
-            />
           </div>
 
           <Button type="submit" className="w-full">
