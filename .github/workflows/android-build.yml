@@ -1,7 +1,7 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch: # Allows manual run from GitHub
+  workflow_dispatch:
 
 jobs:
   build:
@@ -28,8 +28,8 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Add Android platform
-        run: npx cap add android || true
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Sync Capacitor
         run: npx cap sync android
