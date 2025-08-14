@@ -3,6 +3,13 @@ export interface ChitMember {
   mobile: string;
 }
 
+export interface DisbursalConfig {
+  type: 'manual' | 'auto';
+  firstMonthAmount?: number;
+  monthlyIncrease?: number;
+  manualAmounts?: number[];
+}
+
 export interface ChitFund {
   id: string;
   name: string;
@@ -15,7 +22,8 @@ export interface ChitFund {
   members: ChitMember[];
   chitHistory: ChitRecord[];
   monthlyRecords?: MonthlyRecord[];
-  interestPercentage: number;
+  disbursalConfig: DisbursalConfig;
+  monthlyIncrease: number; // Amount added to contribution after taking chit
   createdAt: string;
 }
 

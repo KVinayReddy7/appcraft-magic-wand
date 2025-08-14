@@ -30,9 +30,24 @@ export const MonthlyView = ({ chitFund, onUpdateChitFund, onBack }: MonthlyViewP
   };
 
   const calculateChitAmount = (monthIndex: number) => {
-    const totalAmount = chitFund.monthlyAmount * chitFund.members.length;
-    const interestMultiplier = 1 + (chitFund.interestPercentage / 100) * monthIndex;
-    return Math.round(totalAmount * interestMultiplier);
+    if (chitFund.disbursalConfig.type === 'manual') {
+      return chitFund.disbursalConfig.manualAmounts?.[monthIndex] || 0;
+    } else {
+      const firstAmount = chitFund.disbursalConfig.firstMonthAmount || 0;
+      const increase = chitFund.disbursalConfig.monthlyIncrease || 0;
+      return firstAmount + (increase * monthIndex);
+    }
+  };
+
+  const calculateMemberContribution = (memberName: string, monthIndex: number) => {
+    // Check if member has taken chit in any previous month
+    const hasTakenChit = chitFund.monthlyRecords?.some(record => 
+      record.monthIndex < monthIndex && record.chitTakenBy === memberName
+    );
+    
+    return hasTakenChit ? 
+      chitFund.monthlyAmount + chitFund.monthlyIncrease : 
+      chitFund.monthlyAmount;
   };
 
   const getMonthlyRecord = (monthIndex: number): MonthlyRecord => {
@@ -43,7 +58,7 @@ export const MonthlyView = ({ chitFund, onUpdateChitFund, onBack }: MonthlyViewP
     // Create default payments for all members
     const defaultPayments: MonthlyPayment[] = chitFund.members.map(member => ({
       memberName: member.name,
-      amount: chitFund.monthlyAmount,
+      amount: calculateMemberContribution(member.name, monthIndex),
       paid: false,
       remarks: ''
     }));

@@ -49,9 +49,13 @@ export const ChitFundManagement = ({ chitFund, onUpdateChitFund, onBack }: ChitF
   };
 
   const calculateChitAmount = (monthIndex: number) => {
-    const totalAmount = chitFund.monthlyAmount * chitFund.members.length;
-    const interestMultiplier = 1 + (chitFund.interestPercentage / 100) * monthIndex;
-    return Math.round(totalAmount * interestMultiplier);
+    if (chitFund.disbursalConfig.type === 'manual') {
+      return chitFund.disbursalConfig.manualAmounts?.[monthIndex] || 0;
+    } else {
+      const firstAmount = chitFund.disbursalConfig.firstMonthAmount || 0;
+      const increase = chitFund.disbursalConfig.monthlyIncrease || 0;
+      return firstAmount + (increase * monthIndex);
+    }
   };
 
   const markChitTaken = (monthIndex: number) => {
@@ -128,8 +132,8 @@ export const ChitFundManagement = ({ chitFund, onUpdateChitFund, onBack }: ChitF
             <div className="flex items-center gap-2">
               <Percent className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm text-muted-foreground">Interest Rate</p>
-                <p className="text-lg font-semibold">{chitFund.interestPercentage}%</p>
+                 <p className="text-sm text-muted-foreground">Monthly Increase</p>
+                 <p className="text-lg font-semibold">₹{chitFund.monthlyIncrease.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
